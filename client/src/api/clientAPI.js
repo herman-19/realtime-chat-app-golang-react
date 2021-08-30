@@ -24,7 +24,6 @@ const connect = () => {
 
 // Allows client to send messages via the WebSocket connection.
 const sendMessage = msg => {
-    console.log("Sending Message: ", msg);
     socket.send(msg);
 };
 
