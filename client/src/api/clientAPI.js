@@ -2,7 +2,7 @@ const socket = new WebSocket("ws://localhost:8080/ws");
 
 // Connects to the WebSocket endpoint and listens
 // for events.
-const connect = () => {
+const connect = (callback) => {
     console.log("Attempting connection...");
 
     socket.onopen = () => {
@@ -11,6 +11,7 @@ const connect = () => {
 
     socket.onmessage = msg => {
         console.log(msg);
+        callback(msg);
     };
 
     socket.onclose = event => {
