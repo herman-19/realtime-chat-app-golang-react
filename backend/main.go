@@ -2,62 +2,41 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
-	"github.com/gorilla/websocket"
+	"github.com/herman-19/golang-realtime-chat-app/pkg/websocket"
 )
 
-// Upgrader used to upgrade an HTTP connection to WebSocket connection
-var upgrader = websocket.Upgrader{
-	ReadBufferSize: 1024,
-	WriteBufferSize: 1024,
 
-	// Check origin of connection to allow us to make requests
-	// from the React dev. server to here.
-	// (Temporarily not checking to allow any connection.)
-	CheckOrigin: func(r *http.Request) bool { return true },
-}
-
-// Defines a reader which listens for new messages sent
-// to the Websocket endpoint
-func reader(conn *websocket.Conn) {
-	for {
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			log.Println(err)
-			return
-		}
-
-		fmt.Println(string(p))
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			log.Println(err)
-			return
-		}
-	}
-}
-
-// Handler function for WebSocket endpoint.
-func wsHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.Host)
-
+// wsHandler is the handler function for the WebSocket endpoint.
+func wsHandler(pool *websocket.Pool, w http.ResponseWriter, r *http.Request) {
 	// Upgrade HTTP connection to a WebSocket connection.
 	// Note: upgrader.Upgrade returns *Conn type used to send and receive messages.
-	ws, err := upgrader.Upgrade(w, r, nil)
+	wsConn, err := websocket.Upgrade(w, r)
 	if err != nil {
-		log.Println(err)
+		fmt.Fprintf(w, "%+V\n", err)
 	}
 
-	// Listen (indefinitely) for new messages coming
-	// through the WebSocket connection.
-	reader(ws)
+	// Create new client
+	client := &websocket.Client{
+		Conn: wsConn,
+		Pool: pool,
+	}
+
+	pool.Register <- client
+	client.Read()
 }
 
 func setupRoutes() {
+	pool := websocket.CreatePool()
+	go pool.Start()
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Server written in Go")
 	})
-	http.HandleFunc("/ws", wsHandler)
+	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+		wsHandler(pool, w, r)
+	})
 }
 
 func main() {
