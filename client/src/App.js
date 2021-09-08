@@ -9,7 +9,6 @@ function App() {
 
   useEffect(() => {
     connect((msg) => {
-      console.log("New Message");
       setChatHistory(chatHistory => [...chatHistory, msg]);
       console.log(chatHistory);
     });
@@ -23,7 +22,7 @@ function App() {
   return (
     <div className="App">
       <Header />
-      <ChatHistory ch={chatHistory} />
+      <ChatHistory messages={chatHistory} />
       <button onClick={send}>Send Message</button>
     </div>
   );
